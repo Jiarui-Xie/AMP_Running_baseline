@@ -10,9 +10,9 @@
 
 > **Modified by Xie Jiarui** — This repository contains modifications to the original legged_lab codebase for the **2026 Beijing Yizhuang Half Marathon Robot Race**. Key changes include a BASE motion dataset (2-clip walk + run), SONIC-style actuator modeling, per-joint action delay domain randomization, and tuned reward terms. Baseline checkpoint: `checkpoints/model_6200.pt`. See [g1-base-amp.md](g1-base-amp.md) for details.
 
-## AMP Running Demo (Xie Jiarui)
+## AMP Running Demo
 
-<video src="https://github.com/Jiarui-Xie/AMP_Running_baseline/raw/main/assets/baseline_amp_running.mp4" controls width="100%"></video>
+https://github.com/Jiarui-Xie/AMP_Running_baseline/releases/download/v0.1-baseline/baseline_amp_running.mp4
 
 ---
 
