@@ -1,61 +1,46 @@
-# AMP 3-Clip Training Changes Summary
+# BASE AMP Training — Changes Summary (Xie Jiarui)
 
-2-clip AMP locomotion (walk + run) for G1 29DOF humanoid using legged_lab.
+2-clip AMP locomotion (walk + run) for G1 29DOF humanoid, modified for the 2026 Beijing Yizhuang Half Marathon Robot Race.
 
-## New Files
+## New / Modified Files
 
-### `scripts/tools/retarget/csv_to_gmr_pkl.py`
-Converter: LaFan1 CSV (36 cols) -> GMR-format pickle (`{fps, root_pos, root_rot, dof_pos}`).
+### `source/.../amp/config/g1/g1_amp_base_env_cfg.py`
+Environment config for BASE AMP. Subclasses `G1AmpEnvCfg` with:
+- Motion data: `base/walk1_subject1` and `base/run1_subject2` (equal weight), plus walk_and_run clips at 0.1 weight each
+- SONIC-style actuator model
+- Per-joint action delay domain randomization (`max_action_delay_steps=1`, 10% probability)
+- Reduced standing command probability (`rel_standing_envs=0.01`)
+- Added rewards: `is_alive` (+0.25), `stand_still_joint_deviation` (-0.2), `feet_contact_without_cmd` (+0.5)
+- `feet_y_distance`: replaces `feet_too_near`, enforces 15–30cm foot separation
+- `elbow_hip_distance`: prevents elbow-hip collision (-10.0)
+- `hands_height`: penalizes hands below 70cm (-10.0)
+- `feet_landing_vel_z`: penalizes high-velocity landings (-0.5)
+- Relaxed `lin_vel_z_l2` (-0.02) to allow natural hip oscillation during running
+- Play config: 48 envs, zero velocity commands
 
-### `source/.../amp/config/g1/g1_amp_3clip_env_cfg.py`
-Environment config for 2-clip AMP. Subclasses `G1AmpEnvCfg` with:
-- Motion data: only `walk1_subject1` and `run1_subject2` (equal weight)
-- `track_lin_vel_xy_exp` weight: 1.0 -> **2.0** (boost velocity tracking)
-- `joint_deviation_arms` weight: -0.05 -> **-0.01** (let AMP control arm style)
-- Added rewards: `is_alive` (+0.5), `stand_still_joint_deviation` (-0.2), `feet_contact_without_cmd` (+0.5)
-- Play config with 48 envs, forward-only velocity commands
-
-### `source/.../amp/config/g1/agents/rsl_rl_ppo_3clip_cfg.py`
-Agent config tuned for disc stability:
-- `disc_learning_rate`: 1e-5 -> **5e-6** (prevent disc saturation)
-- `grad_penalty_scale`: 15 -> **25** (keep disc uncertain)
-- `task_style_lerp`: 0.5 (50/50 task/style blend)
+### `source/.../amp/config/g1/agents/rsl_rl_ppo_base_cfg.py`
+Agent config:
+- `experiment_name`: `g1_amp_base`
+- `disc_learning_rate`: 5e-6 (prevent disc saturation)
+- `grad_penalty_scale`: 25 (stronger disc regularization)
+- `task_style_lerp`: 0.6
 - `style_reward_scale`: 5.0
 - Symmetry: data augmentation + mirror loss (0.1)
 
-### `source/.../data/MotionData/g1_29dof/amp/3clip/*.pkl`
-Retargeted motion clips: `walk1_subject1.pkl`, `run1_subject2.pkl`, `fallAndGetUp1_subject1.pkl` (fall clip unused in current config).
-
-### `source/.../rsl_rl/amp_vec_env_wrapper.py`
-Bridges isaaclab's tuple env interface with AMPRunner's TensorDict expectation.
-
-## Modified Files
-
-### `scripts/rsl_rl/train.py`
-- Import fix: `RslRlBaseRunnerCfg` -> `RslRlOnPolicyRunnerCfg`
-- Added AMP wrapper branch: uses `AmpVecEnvWrapper` when `class_name == "AMPRunner"`
-
-### `scripts/rsl_rl/play.py`
-- Same import fix and AMP wrapper branch as train.py
-- Added AMPRunner support for loading checkpoints
-
-### `scripts/rsl_rl/cli_args.py`
-- Import fix: `RslRlBaseRunnerCfg` -> `RslRlOnPolicyRunnerCfg`
-
-### `source/.../envs/manager_based_amp_env.py`
-- Removed `record_post_physics_decimation_step()` call (method doesn't exist in this version)
-
-### `source/.../amp/config/g1/__init__.py`
-- Registered two new gym tasks:
-  - `LeggedLab-Isaac-AMP-G1-3Clip-v0` (training)
-  - `LeggedLab-Isaac-AMP-G1-3Clip-Play-v0` (evaluation)
-
-### `source/.../amp/config/g1/agents/rsl_rl_ppo_cfg.py`
-- Removed `actor_obs_normalization=False` and `critic_obs_normalization=False` (not supported by this rsl_rl version)
+### `source/.../data/MotionData/g1_29dof/amp/base/`
+Retargeted motion clips: `walk1_subject1.pkl`, `run1_subject2.pkl`.
 
 ### `source/.../amp/mdp/rewards.py`
-- Added `feet_too_near()`: penalizes feet closer than threshold (prevents crossed legs)
-- Added `feet_contact_without_cmd()`: rewards both feet grounded when velocity command is near zero
+Added reward terms:
+- `feet_y_distance()`: penalizes feet outside [min_dist, max_dist] lateral range
+- `feet_landing_vel_z()`: penalizes high downward velocity at foot contact
+- `body_pair_distance()`: generic minimum-distance penalty between two body groups
+- `hands_height()`: penalizes hand links below a height threshold
+- `feet_contact_without_cmd()`: rewards grounded feet when velocity command is near zero
+- `track_lin_vel_xy_low_speed()`: additional tracking reward at low speeds
+
+### `checkpoints/model_6200.pt`
+Baseline checkpoint from the 2026-04-01 training run (6200 iterations).
 
 ## Key Hyperparameters
 
@@ -63,27 +48,28 @@ Bridges isaaclab's tuple env interface with AMPRunner's TensorDict expectation.
 |-----------|-------|-------|
 | disc_learning_rate | 5e-6 | Halved from default to prevent saturation |
 | grad_penalty_scale | 25 | Increased from 15 for stronger disc regularization |
-| task_style_lerp | 0.5 | Equal task/style weight |
+| task_style_lerp | 0.6 | 60% task / 40% style |
 | style_reward_scale | 5.0 | |
-| track_lin_vel_xy weight | 2.0 | Doubled to break velocity tracking plateau |
-| joint_deviation_arms weight | -0.01 | Reduced 5x to let disc control arm style |
-| num_envs | 4096 | RTX 4090 24GB |
+| max_action_delay_steps | 1 | Communication latency DR |
 | loss_type | LSGAN | |
 
 ## Training Command
 
 ```bash
-cd /root/gpufree-data/legged_lab && python scripts/rsl_rl/train.py \
-    --task LeggedLab-Isaac-AMP-G1-3Clip-v0 \
-    --headless --max_iterations 50000 --num_envs 4096
+python scripts/rsl_rl/train.py \
+    --task LeggedLab-Isaac-AMP-G1-BASE-v0 \
+    --headless --max_iterations 50000
 ```
 
 ## Play Command
 
 ```bash
-python scripts/rsl_rl/play.py --task LeggedLab-Isaac-AMP-G1-3Clip-Play-v0 --num_envs 48
+python scripts/rsl_rl/play.py \
+    --task LeggedLab-Isaac-AMP-G1-BASE-Play-v0 \
+    --num_envs 48 --video \
+    --checkpoint checkpoints/model_6200.pt
 ```
 
 ## Deployment
 
-AMP policy deploys identically to standard RL — just a feedforward ONNX model. Only difference: expects 4-frame observation history (96 dims x 4 = 384 input). No discriminator or motion clips needed at inference.
+AMP policy deploys identically to standard RL — feedforward ONNX model. Expects 4-frame observation history (96 dims × 4 = 384 input). No discriminator or motion clips needed at inference.
