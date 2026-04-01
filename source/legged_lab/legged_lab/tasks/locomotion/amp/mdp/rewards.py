@@ -158,6 +158,19 @@ def hands_height(
     return deficit.sum(dim=1)  # (N,)
 
 
+def energy(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize mechanical power consumption: sum(|joint_vel| * |applied_torque|)."""
+    from isaaclab.assets import Articulation
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    qvel = asset.data.joint_vel[:, asset_cfg.joint_ids]
+    qfrc = asset.data.applied_torque[:, asset_cfg.joint_ids]
+    return torch.sum(torch.abs(qvel) * torch.abs(qfrc), dim=-1)
+
+
 def feet_contact_without_cmd(
     env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg, command_name: str = "base_velocity"
 ) -> torch.Tensor:
