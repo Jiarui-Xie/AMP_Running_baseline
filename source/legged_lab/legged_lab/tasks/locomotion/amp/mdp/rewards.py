@@ -148,36 +148,14 @@ def hands_height(
     min_height: float = 0.70,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
-    """Penalize hands dropping below a minimum world-frame height (quadratic).
+    """Penalize hands dropping below a minimum world-frame height.
 
-    Returns sum of squared deficit over both hands for a stronger gradient as
-    hands drop further below the threshold.
+    Returns sum of (min_height - hand_z).clamp(min=0) over both hands.
     """
     asset = env.scene[asset_cfg.name]
     hands_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2]  # (N, 2)
     deficit = (min_height - hands_z).clamp(min=0)  # (N, 2)
-    return deficit.square().sum(dim=1)  # (N,)
-
-
-def body_pair_distance(
-    env: ManagerBasedRLEnv,
-    min_dist: float = 0.15,
-    asset_cfg_a: SceneEntityCfg = SceneEntityCfg("robot"),
-    asset_cfg_b: SceneEntityCfg = SceneEntityCfg("robot"),
-) -> torch.Tensor:
-    """Penalize paired bodies being closer than *min_dist* (quadratic).
-
-    ``asset_cfg_a`` and ``asset_cfg_b`` must resolve to the same number of
-    body IDs.  Distances are computed element-wise between matching pairs
-    (e.g. left_elbow↔left_hip, right_elbow↔right_hip).
-    """
-    asset_a = env.scene[asset_cfg_a.name]
-    asset_b = env.scene[asset_cfg_b.name]
-    pos_a = asset_a.data.body_pos_w[:, asset_cfg_a.body_ids, :]  # (N, P, 3)
-    pos_b = asset_b.data.body_pos_w[:, asset_cfg_b.body_ids, :]  # (N, P, 3)
-    dist = torch.norm(pos_a - pos_b, dim=-1)  # (N, P)
-    deficit = (min_dist - dist).clamp(min=0)  # (N, P)
-    return deficit.square().sum(dim=1)  # (N,)
+    return deficit.sum(dim=1)  # (N,)
 
 
 def feet_contact_without_cmd(

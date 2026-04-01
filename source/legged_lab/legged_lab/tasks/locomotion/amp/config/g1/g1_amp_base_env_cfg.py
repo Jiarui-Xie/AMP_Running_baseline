@@ -68,10 +68,6 @@ class G1AmpBaseRewards(G1AmpRewards):
         },
     )
 
-    # Relax base vertical velocity penalty to allow natural hip oscillation during
-    # running.  Landing impact protection is already handled by feet_landing_vel_z.
-    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.02)
-
     feet_too_near = None  # replaced by feet_y_distance
 
     feet_y_distance = RewTerm(
@@ -84,19 +80,9 @@ class G1AmpBaseRewards(G1AmpRewards):
         },
     )
 
-    elbow_hip_distance = RewTerm(
-        func=mdp.body_pair_distance,
-        weight=-10.0,
-        params={
-            "min_dist": 0.15,
-            "asset_cfg_a": SceneEntityCfg("robot", body_names=["left_elbow_link", "right_elbow_link"]),
-            "asset_cfg_b": SceneEntityCfg("robot", body_names=["left_hip_pitch_link", "right_hip_pitch_link"]),
-        },
-    )
-
     hands_height = RewTerm(
         func=mdp.hands_height,
-        weight=-10.0,
+        weight=-2.0,
         params={
             "min_height": 0.70,
             "asset_cfg": SceneEntityCfg("robot", body_names=["left_wrist_yaw_link", "right_wrist_yaw_link"]),

@@ -12,10 +12,8 @@ Environment config for BASE AMP. Subclasses `G1AmpEnvCfg` with:
 - Reduced standing command probability (`rel_standing_envs=0.01`)
 - Added rewards: `is_alive` (+0.25), `stand_still_joint_deviation` (-0.2), `feet_contact_without_cmd` (+0.5)
 - `feet_y_distance`: replaces `feet_too_near`, enforces 15–30cm foot separation
-- `elbow_hip_distance`: prevents elbow-hip collision (-10.0)
-- `hands_height`: penalizes hands below 70cm (-10.0)
+- `hands_height`: penalizes hands below 70cm (-2.0)
 - `feet_landing_vel_z`: penalizes high-velocity landings (-0.5)
-- Relaxed `lin_vel_z_l2` (-0.02) to allow natural hip oscillation during running
 - Play config: 48 envs, zero velocity commands
 
 ### `source/.../amp/config/g1/agents/rsl_rl_ppo_base_cfg.py`
@@ -34,8 +32,7 @@ Retargeted motion clips: `walk1_subject1.pkl`, `run1_subject2.pkl`.
 Added reward terms:
 - `feet_y_distance()`: penalizes feet outside [min_dist, max_dist] lateral range
 - `feet_landing_vel_z()`: penalizes high downward velocity at foot contact
-- `body_pair_distance()`: generic minimum-distance penalty between two body groups
-- `hands_height()`: penalizes hand links below a height threshold
+- `hands_height()`: penalizes hand links below a height threshold (linear)
 - `feet_contact_without_cmd()`: rewards grounded feet when velocity command is near zero
 - `track_lin_vel_xy_low_speed()`: additional tracking reward at low speeds
 
