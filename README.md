@@ -12,7 +12,7 @@
 
 ## AMP Running Demo
 
-https://github.com/Jiarui-Xie/AMP_Running_baseline/releases/download/v0.1-baseline/baseline_amp_running.mp4
+https://github.com/user-attachments/assets/ca331c3b-fabc-4ed7-933b-b245404ad3b5
 
 ---
 
