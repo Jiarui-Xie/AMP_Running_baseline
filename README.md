@@ -8,7 +8,14 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/license/mit)
 
-> **Modified by Xie Jiarui** — This repository contains modifications to the original legged_lab codebase for the **2026 Beijing Yizhuang Half Marathon Robot Race**. Key changes include a BASE motion dataset (2-clip walk + run), SONIC-style actuator modeling, per-joint action delay domain randomization, and tuned reward terms. Baseline checkpoint: `checkpoints/model_6200.pt`. See [g1-base-amp.md](g1-base-amp.md) for details.
+> **Modified by Xie Jiarui** — Originally integrated by PMY9527 with motion clips from LaFan1. This repository contains modifications to the original legged_lab codebase for the **2026 Beijing Yizhuang Half Marathon Robot Race**. Key changes include a BASE motion dataset (2-clip walk + run), SONIC-style actuator modeling, per-joint action delay domain randomization, and tuned reward terms. Baseline checkpoint: `checkpoints/model_6200.pt`. See [g1-base-amp.md](g1-base-amp.md) for details.
+>
+> **BASE-HS (High-Speed)** — Post-training from the BASE checkpoint (`checkpoints/model_6200.pt`) to optimize energy efficiency at 1.5–2.5 m/s cruise speed. The HS speed range is a subset of BASE, so the AMP discriminator remains stable and the policy resumes with all learned locomotion skills intact. The previous HS config (4 m/s + slope terrain) caused the discriminator to overfit — the policy could not produce motions resembling the reference clips at such high speeds, leaving no useful style gradient. The redesigned config uses: BASE-level style parameters, flat terrain with gravity-direction DR (±8° equivalent), and hot-joint energy penalties. Extending beyond the demo clip speed range will require new motion data.
+>
+> ```bash
+> python scripts/rsl_rl/train.py --task LeggedLab-Isaac-AMP-G1-BASE-HS-v0 --headless \
+>     --checkpoint checkpoints/model_6200.pt
+> ```
 
 ## AMP Running Demo
 
