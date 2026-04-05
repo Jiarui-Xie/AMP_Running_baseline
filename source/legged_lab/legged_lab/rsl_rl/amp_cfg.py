@@ -47,3 +47,13 @@ class RslRlAmpCfg:
     
     loss_type: Literal["GAN", "LSGAN", "WGAN"] = "LSGAN"
     """Type of loss function used for the AMP discriminator (e.g., 'GAN', 'LSGAN', 'WGAN')"""
+
+    freeze_discriminator: bool = False
+    """If True, freeze the discriminator weights during training. Useful for post-training
+    from a checkpoint to prevent discriminator collapse while the policy continues to improve."""
+
+    reinit_discriminator: bool = False
+    """If True, skip loading discriminator weights when resuming from a checkpoint.
+    The discriminator starts fresh (random init) while policy/critic are loaded.
+    Useful for post-training when the new task distribution differs significantly
+    (e.g. higher speeds, new terrain) and the old discriminator would give stale signals."""

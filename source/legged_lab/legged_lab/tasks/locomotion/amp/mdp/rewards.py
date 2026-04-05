@@ -158,6 +158,33 @@ def hands_height(
     return deficit.sum(dim=1)  # (N,)
 
 
+def hands_y_spread(
+    env: ManagerBasedRLEnv,
+    max_dist: float = 0.25,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize each hand spreading too far from the base center along the robot's local Y-axis.
+
+    Computes the absolute lateral (Y) offset of each hand relative to the robot base
+    in the local frame, and penalizes any excess beyond *max_dist*.
+
+    Returns sum over both hands of max(|local_y| - max_dist, 0).
+    """
+    asset = env.scene[asset_cfg.name]
+    base_pos = asset.data.root_pos_w  # (N, 3)
+    base_quat = asset.data.root_quat_w  # (N, 4)
+    hands_pos = asset.data.body_pos_w[:, asset_cfg.body_ids, :]  # (N, 2, 3)
+    # vector from base to each hand in world frame
+    diff = hands_pos - base_pos.unsqueeze(1)  # (N, 2, 3)
+    # project into local frame per hand
+    local_diff_0 = math_utils.quat_apply_inverse(base_quat, diff[:, 0])  # (N, 3)
+    local_diff_1 = math_utils.quat_apply_inverse(base_quat, diff[:, 1])  # (N, 3)
+    y0 = local_diff_0[:, 1].abs()
+    y1 = local_diff_1[:, 1].abs()
+    excess = (y0 - max_dist).clamp(min=0) + (y1 - max_dist).clamp(min=0)
+    return excess
+
+
 def energy(
     env: ManagerBasedRLEnv,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
